@@ -1,6 +1,29 @@
 import numpy as np
 
 
+def canvas_generator(train_data, molecule_structure_dict,
+                     possible_elements_dict, range_of_values):
+    """
+    Generator that returns canvas for fiven data
+
+    :param train_data: train data table (type: pd.DataFrame)
+    :param molecule_structure_dict: dictionary containing coordinates of atoms refered to one of them (type: dict)
+    :param possible_elements_dict: elements and theis index (type: dict)
+    :param range_of_values: possible values in the grid (type: list[float])
+    :return: populated canvas and target variable (type: yuple[np.array, float])
+    """
+
+    for _, row in train_data.iterrows():
+        canvas = get_canvas(row["molecule_name"],
+                            row["atom_index_0"],
+                            row["atom_index_1"],
+                            molecule_structure_dict,
+                            possible_elements_dict,
+                            range_of_values)
+
+        yield (canvas, row["scalar_coupling_constant"])
+
+
 def build_molecule_structure_dict(processed_atoms):
     """
     Converts processed_atoms table into a dict for faster access
