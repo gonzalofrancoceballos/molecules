@@ -23,12 +23,14 @@ def build_molecule_structure_dict(processed_atoms):
     return molecule_structure_dict
 
 
-def get_canvas(molecule_name, atom_index, molecule_structure_dict, possible_elements_dict, range_of_values):
+def get_canvas(molecule_name, atom_from_index, atom_to_index,
+               molecule_structure_dict, possible_elements_dict, range_of_values):
     """
     For a given atom in a molecule, gives a 3D matrix with the positioning of all atoms with respet to it
 
     :param molecule_name: name of molecule in molecule_structure_dic (type: str)
-    :param atom_index: index of the atom inside the  molecule (type: int)
+    :param atom_from_index: index of the atom inside the  molecule (type: int)
+    :param atom_to_index: index of second atom in the pair (type: int)
     :param molecule_structure_dict: dictionary of processed  molecules (type: str)
     :param possible_elements_dict: possible elements that can be in a molecule ("H", "C", etc)
     :param range_of_values: range of values in the 3D grid (type: list[float])
@@ -38,11 +40,36 @@ def get_canvas(molecule_name, atom_index, molecule_structure_dict, possible_elem
 
     n = len(range_of_values)
     atoms = molecule_structure_dict[molecule_name]["atoms"]
-    atom = molecule_structure_dict[molecule_name]["atoms"][atom_index]
+    atom = molecule_structure_dict[molecule_name]["atoms"][atom_from_index]
     elements = molecule_structure_dict[molecule_name]["elements"]
 
-    canvas = np.zeros([n, n, n, len(possible_elements_dict) + 1])
+    canvas = np.zeros([n+1, n+1, n+1, len(possible_elements_dict) + 1])
     canvas = populate_canvas(canvas, atom, atoms, elements, possible_elements_dict, range_of_values)
+    canvas = flag_target_atom(canvas, atom_to_index, atoms, range_of_values)
+
+    return canvas
+
+
+def flag_target_atom(canvas, atom_target_index, atoms, range_of_values):
+    """
+    Places target atom in last channel of canvas
+
+    :param canvas: 4D matrix to be populated (type: np.array)
+    :param atom_target_index: index of second atom in the pair (type: int)
+    :param atoms: atoms to place in canvas with respect to atom (type: np.array)
+    :param range_of_values: range of values in the 3D grid (type: list[float])
+    :return: 4D array of zeros except for the coordinates where there is an atom.
+    Dimensions 1,2,3 are the coordinates, and 4 is the element (type: np.array)
+    """
+
+    atoms_centered = atoms - atoms[atom_target_index]
+    atoms_centered = np.round(atoms_centered, 2)
+    atom_target = atoms_centered[atom_target_index]
+    point_coordinates = get_coordinates(range_of_values, atom_target)
+
+    canvas[point_coordinates[0],
+           point_coordinates[1],
+           point_coordinates[2], -1] = 1
 
     return canvas
 
