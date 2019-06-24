@@ -1,4 +1,37 @@
 import numpy as np
+import pandas as pd
+import utils
+
+
+def load_data(data_path, min_xyz, max_xyz, resolution):
+    """
+
+    :param data_path: data path (type: Path)
+    :param min_xyz:
+    :param max_xyz:
+    :param resolution:
+    :return:
+    """
+
+    processed_atoms = pd.read_hdf(data_path / "structures.h5")
+
+    processed_atoms['x'] = processed_atoms['x'].clip(min_xyz, max_xyz)
+    processed_atoms['y'] = processed_atoms['y'].clip(min_xyz, max_xyz)
+    processed_atoms['z'] = processed_atoms['z'].clip(min_xyz, max_xyz)
+
+    processed_atoms['x'] = utils.apply_resolution(processed_atoms['x'], resolution)
+    processed_atoms['y'] = utils.apply_resolution(processed_atoms['y'], resolution)
+    processed_atoms['z'] = utils.apply_resolution(processed_atoms['z'], resolution)
+
+    processed_atoms['x'] = np.round(processed_atoms['x'], 2)
+    processed_atoms['y'] = np.round(processed_atoms['y'], 2)
+    processed_atoms['z'] = np.round(processed_atoms['z'], 2)
+
+    molecule_structure_dict = build_molecule_structure_dict(processed_atoms)
+
+    train_data = pd.read_csv(data_path / "train.csv")
+
+    return molecule_structure_dict, train_data
 
 
 def canvas_generator(train_data, molecule_structure_dict,
@@ -21,7 +54,7 @@ def canvas_generator(train_data, molecule_structure_dict,
                             possible_elements_dict,
                             range_of_values)
 
-        yield (canvas, row["scalar_coupling_constant"])
+        yield (canvas, np.array([row["scalar_coupling_constant"]]))
 
 
 def build_molecule_structure_dict(processed_atoms):
@@ -66,7 +99,7 @@ def get_canvas(molecule_name, atom_from_index, atom_to_index,
     atom = molecule_structure_dict[molecule_name]["atoms"][atom_from_index]
     elements = molecule_structure_dict[molecule_name]["elements"]
 
-    canvas = np.zeros([n+1, n+1, n+1, len(possible_elements_dict) + 1])
+    canvas = np.zeros([1, n+1, n+1, n+1, len(possible_elements_dict) + 1])
     canvas = populate_canvas(canvas, atom, atoms, elements, possible_elements_dict, range_of_values)
     canvas = flag_target_atom(canvas, atom_to_index, atoms, range_of_values)
 
@@ -90,7 +123,8 @@ def flag_target_atom(canvas, atom_target_index, atoms, range_of_values):
     atom_target = atoms_centered[atom_target_index]
     point_coordinates = get_coordinates(range_of_values, atom_target)
 
-    canvas[point_coordinates[0],
+    canvas[0,
+           point_coordinates[0],
            point_coordinates[1],
            point_coordinates[2], -1] = 1
 
@@ -117,7 +151,8 @@ def populate_canvas(canvas, atom, atoms, elements, possible_elements_dict, range
     for element, point in zip(elements, atoms_centered):
         point_coordinates = get_coordinates(range_of_values, point)
         element_index = possible_elements_dict[element]
-        canvas[point_coordinates[0],
+        canvas[0,
+               point_coordinates[0],
                point_coordinates[1],
                point_coordinates[2], element_index] = 1
 
