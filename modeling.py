@@ -1,11 +1,11 @@
 import model_utils
 import models
 import losses
-from tensorflow.keras import callbacks
+from keras import callbacks, optimizers
 
 
 def train_model(train_data, molecule_structure_dict, possible_elements_dict, range_of_values,
-                batch_size=4, tensorboard_dir="tensorboard/test_1"):
+                batch_size=2, tensorboard_dir="tensorboard/test_1"):
     """
 
     :param train_data:
@@ -26,17 +26,18 @@ def train_model(train_data, molecule_structure_dict, possible_elements_dict, ran
                                                batch_size=batch_size)
 
     model = models.get_model(n)
-    model.compile(optimizer='adam',
+    model.compile(optimizer=optimizers.Adam(lr=0.001),
                   loss=losses.log_mae,
                   metrics=['mae', losses.log_mae])
 
     tensorboard = callbacks.TensorBoard(log_dir=f"./../{tensorboard_dir}",
-                                        histogram_freq=1,
-                                        batch_size=16,
+                                        histogram_freq=0,
+                                        # batch_size=1,
                                         write_grads=True,
                                         update_freq="batch")
 
     model.fit_generator(generator=data_generator,
-                        use_multiprocessing=True, epochs=100,
-                        workers=2,
+                        use_multiprocessing=True,
+                        epochs=100,
+                        #workers=2,
                         callbacks=[tensorboard])
